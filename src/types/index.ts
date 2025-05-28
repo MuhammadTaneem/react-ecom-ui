@@ -36,4 +36,16 @@ export interface User {
   email: string;
   name: string;
   avatar?: string;
+  addresses: Address[];
+}
+
+export interface Address {
+  id: number;
+  name: string;
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  area: string;
+  phone_number: string;
+  is_default: boolean;
 }
