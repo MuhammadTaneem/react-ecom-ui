@@ -1,9 +1,11 @@
-import { Link } from 'react-router-dom';
-import { ShoppingCart, Menu, Search } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Menu, Search, User } from 'lucide-react';
 import { useState } from 'react';
 import ThemeToggle from '../ui/ThemeToggle';
 import Button from '../ui/Button';
 import { useCart } from '../../hooks/useCart';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -12,6 +14,8 @@ interface HeaderProps {
 const Header = ({ onMenuClick }: HeaderProps) => {
   const { totalItems, open } = useCart();
   const [isScrolled, setIsScrolled] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   // Add scroll event listener
   window.addEventListener('scroll', () => {
@@ -21,6 +25,14 @@ const Header = ({ onMenuClick }: HeaderProps) => {
       setIsScrolled(false);
     }
   });
+
+  const handleProfileClick = () => {
+    if (isAuthenticated) {
+      navigate('/profile');
+    } else {
+      navigate('/login');
+    }
+  };
 
   return (
     <header 
@@ -99,13 +111,14 @@ const Header = ({ onMenuClick }: HeaderProps) => {
               )}
             </Button>
             
-            <div className="hidden md:block">
-              <Link to="/login">
-                <Button variant="outline" size="sm">
-                  Login
-                </Button>
-              </Link>
-            </div>
+            <Button
+              variant="ghost"
+              onClick={handleProfileClick}
+              aria-label={isAuthenticated ? "View profile" : "Sign in"}
+              className="hidden md:flex"
+            >
+              <User size={20} />
+            </Button>
           </div>
         </div>
       </div>
