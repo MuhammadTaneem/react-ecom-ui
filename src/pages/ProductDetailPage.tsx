@@ -110,7 +110,7 @@ const ProductDetailPage = () => {
           <div className="lg:col-span-3">
             <div className="aspect-square overflow-hidden">
               <img
-                src={selectedProduct.images[0]?.image || selectedProduct.thumbnail}
+                src={selectedProduct.image}
                 alt={selectedProduct.name}
                 className="h-full w-full object-cover object-center"
               />
