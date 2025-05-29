@@ -8,7 +8,7 @@ import HomePage from './pages/HomePage';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
+import { default as CheckoutPage } from './pages/CheckoutPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -19,6 +19,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import AdminDashboardPage from './pages/admin/DashboardPage';
 import AdminProductsPage from './pages/admin/ProductsPage';
 import AdminOrdersPage from './pages/admin/OrdersPage';
+import AdminCustomersPage from './pages/admin/CustomersPage';
 
 import { setTheme } from './store/slices/themeSlice';
 import { useTheme } from './hooks/useTheme';
@@ -70,6 +71,7 @@ function App() {
         <Route index element={<AdminDashboardPage />} />
         <Route path="products" element={<AdminProductsPage />} />
         <Route path="orders" element={<AdminOrdersPage />} />
+        <Route path="customers" element={<AdminCustomersPage />} />
         {/* Add more admin routes as needed */}
         <Route path="*" element={<NotFoundPage />} />
       </Route>

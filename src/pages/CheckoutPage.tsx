@@ -1,25 +1,87 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { useCart } from '../hooks/useCart';
+import { Address, PaymentMethod } from '../types';
 import Button from '../components/ui/Button';
-import { ArrowLeft, Check } from 'lucide-react';
+import Input from '../components/ui/Input';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { CreditCard, Wallet, Smartphone, ArrowLeft, Check } from 'lucide-react';
+
+const paymentSchema = z.object({
+  method: z.enum(['cash', 'mobile', 'card'] as const),
+  mobile_number: z.string().optional(),
+  transaction_id: z.string().optional(),
+  card_number: z.string().optional(),
+  expiry_date: z.string().optional(),
+  cvv: z.string().optional(),
+}).refine(data => {
+  if (data.method === 'mobile') {
+    return !!data.mobile_number && !!data.transaction_id;
+  }
+  if (data.method === 'card') {
+    return !!data.card_number && !!data.expiry_date && !!data.cvv;
+  }
+  return true;
+}, {
+  message: "Please fill in all required fields for the selected payment method",
+});
+
+type PaymentFormData = z.infer<typeof paymentSchema>;
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { items, totalPrice } = useCart();
-  const { user } = useSelector((state: RootState) => state.auth);
-  const [selectedAddress, setSelectedAddress] = useState<number | null>(
-    user?.addresses.find(addr => addr.is_default)?.id || null
-  );
-  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
-  
-  // Redirect to cart if cart is empty
-  if (items.length === 0) {
-    navigate('/cart');
-    return null;
-  }
+  const { items, totalPrice } = useSelector((state: RootState) => state.cart);
+  const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('cash');
+
+  // Simulated addresses - in a real app, this would come from the user's profile
+  const addresses: Address[] = [
+    {
+      id: 1,
+      name: 'Home',
+      address_line1: '123 Main Street',
+      address_line2: 'Apt 4B',
+      city: 'Dhaka',
+      area: 'Uttara',
+      phone_number: '+8801234567890',
+      is_default: true,
+    },
+    {
+      id: 2,
+      name: 'Office',
+      address_line1: '456 Business Avenue',
+      city: 'Dhaka',
+      area: 'Banani',
+      phone_number: '+8801987654321',
+      is_default: false,
+    },
+  ];
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+  } = useForm<PaymentFormData>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      method: 'cash',
+    },
+  });
+
+  const currentPaymentMethod = watch('method');
+
+  // Set default address if none selected
+  useState(() => {
+    const defaultAddress = addresses.find(addr => addr.is_default);
+    if (defaultAddress && !selectedAddress) {
+      setSelectedAddress(defaultAddress.id);
+    }
+  });
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -28,253 +90,312 @@ const CheckoutPage = () => {
     }).format(price);
   };
 
-  const handlePlaceOrder = () => {
+  const onSubmit = (data: PaymentFormData) => {
     // Here you would implement the order submission logic
+    console.log('Order placed with data:', {
+      address: addresses.find(addr => addr.id === selectedAddress),
+      payment: data,
+      items,
+      totalPrice,
+    });
+    
     alert('Order placed successfully!');
     navigate('/');
   };
 
+  // Redirect to cart if cart is empty
+  if (items.length === 0) {
+    navigate('/cart');
+    return null;
+  }
+
   return (
-    <div>
-      <Link 
-        to="/cart" 
+    <div className="container mx-auto px-4 py-8">
+      <button 
+        onClick={() => navigate('/cart')}
         className="mb-6 inline-flex items-center text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
       >
         <ArrowLeft size={16} className="mr-2" />
         Back to Cart
-      </Link>
+      </button>
       
-      <h1 className="mb-6 text-2xl font-bold sm:text-3xl">Checkout</h1>
+      <h1 className="mb-8 text-2xl font-bold sm:text-3xl">Checkout</h1>
       
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          {/* Shipping Address Section */}
-          <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-4 text-xl font-semibold">Shipping Address</h2>
-            
-            <div className="space-y-4">
-              {user?.addresses.map((address) => (
-                <div 
-                  key={address.id}
-                  onClick={() => setSelectedAddress(address.id)}
-                  className={`cursor-pointer rounded-lg border p-4 ${
-                    selectedAddress === address.id 
-                      ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20' 
-                      : 'border-gray-200 dark:border-gray-700'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center">
-                        <h3 className="font-medium">{address.name}</h3>
-                        {address.is_default && (
-                          <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                            Default
-                          </span>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="grid gap-8 md:grid-cols-3">
+          <div className="md:col-span-2 space-y-8">
+            {/* Shipping Address Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Shipping Address</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {addresses.map((address) => (
+                    <div 
+                      key={address.id}
+                      onClick={() => setSelectedAddress(address.id)}
+                      className={`cursor-pointer rounded-lg border p-4 ${
+                        selectedAddress === address.id 
+                          ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20' 
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center">
+                            <h3 className="font-medium">{address.name}</h3>
+                            {address.is_default && (
+                              <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                            {address.address_line1}
+                            {address.address_line2 && <>, {address.address_line2}</>}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {address.city}, {address.area}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Phone: {address.phone_number}
+                          </p>
+                        </div>
+                        
+                        {selectedAddress === address.id && (
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-white">
+                            <Check size={14} />
+                          </div>
                         )}
                       </div>
-                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        {address.address_line1}
-                        {address.address_line2 && <>, {address.address_line2}</>}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {address.city}, {address.area}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Phone: {address.phone_number}
-                      </p>
+                    </div>
+                  ))}
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate('/profile?tab=addresses&action=add')}
+                    className="w-full"
+                  >
+                    + Add New Address
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Payment Method Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Method</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div 
+                      className={`cursor-pointer rounded-lg border p-4 ${
+                        currentPaymentMethod === 'cash' 
+                          ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20' 
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                      onClick={() => {
+                        setSelectedPaymentMethod('cash');
+                      }}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <Wallet className="mb-2 h-8 w-8 text-green-500" />
+                        <h3 className="font-medium">Cash on Delivery</h3>
+                        <input 
+                          type="radio" 
+                          value="cash" 
+                          {...register("method")} 
+                          className="mt-2"
+                        />
+                      </div>
                     </div>
                     
-                    {selectedAddress === address.id && (
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-white">
-                        <Check size={14} />
+                    <div 
+                      className={`cursor-pointer rounded-lg border p-4 ${
+                        currentPaymentMethod === 'mobile' 
+                          ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20' 
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                      onClick={() => {
+                        setSelectedPaymentMethod('mobile');
+                      }}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <Smartphone className="mb-2 h-8 w-8 text-blue-500" />
+                        <h3 className="font-medium">Mobile Banking</h3>
+                        <input 
+                          type="radio" 
+                          value="mobile" 
+                          {...register("method")} 
+                          className="mt-2"
+                        />
                       </div>
-                    )}
+                    </div>
+                    
+                    <div 
+                      className={`cursor-pointer rounded-lg border p-4 ${
+                        currentPaymentMethod === 'card' 
+                          ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20' 
+                          : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                      onClick={() => {
+                        setSelectedPaymentMethod('card');
+                      }}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <CreditCard className="mb-2 h-8 w-8 text-purple-500" />
+                        <h3 className="font-medium">Credit/Debit Card</h3>
+                        <input 
+                          type="radio" 
+                          value="card" 
+                          {...register("method")} 
+                          className="mt-2"
+                        />
+                      </div>
+                    </div>
                   </div>
+                  
+                  {/* Mobile Banking Fields */}
+                  {currentPaymentMethod === 'mobile' && (
+                    <div className="mt-4 space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                      <div>
+                        <label className="mb-1 block text-sm font-medium">Mobile Number</label>
+                        <Input 
+                          {...register("mobile_number")} 
+                          placeholder="Enter your mobile number" 
+                        />
+                        {errors.mobile_number && (
+                          <p className="mt-1 text-xs text-red-500">{errors.mobile_number.message}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="mb-1 block text-sm font-medium">Transaction ID</label>
+                        <Input 
+                          {...register("transaction_id")} 
+                          placeholder="Enter transaction ID" 
+                        />
+                        {errors.transaction_id && (
+                          <p className="mt-1 text-xs text-red-500">{errors.transaction_id.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Credit Card Fields */}
+                  {currentPaymentMethod === 'card' && (
+                    <div className="mt-4 space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                      <div>
+                        <label className="mb-1 block text-sm font-medium">Card Number</label>
+                        <Input 
+                          {...register("card_number")} 
+                          placeholder="1234 5678 9012 3456" 
+                        />
+                        {errors.card_number && (
+                          <p className="mt-1 text-xs text-red-500">{errors.card_number.message}</p>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="mb-1 block text-sm font-medium">Expiry Date</label>
+                          <Input 
+                            {...register("expiry_date")} 
+                            placeholder="MM/YY" 
+                          />
+                          {errors.expiry_date && (
+                            <p className="mt-1 text-xs text-red-500">{errors.expiry_date.message}</p>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <label className="mb-1 block text-sm font-medium">CVV</label>
+                          <Input 
+                            {...register("cvv")} 
+                            placeholder="123" 
+                            type="password" 
+                          />
+                          {errors.cvv && (
+                            <p className="mt-1 text-xs text-red-500">{errors.cvv.message}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
-              
-              <Button
-                variant="outline"
-                onClick={() => navigate('/profile?tab=addresses&action=add')}
-                className="w-full"
-              >
-                + Add New Address
-              </Button>
-            </div>
+              </CardContent>
+            </Card>
           </div>
           
-          {/* Payment Method Section */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-4 text-xl font-semibold">Payment Method</h2>
-            
-            <div className="space-y-4">
-              <div 
-                onClick={() => setPaymentMethod('cash')}
-                className={`cursor-pointer rounded-lg border p-4 ${
-                  paymentMethod === 'cash' 
-                    ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20' 
-                    : 'border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="mr-4 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-green-500 dark:bg-green-900/20">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Cash on Delivery</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Pay when you receive your order
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {paymentMethod === 'cash' && (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-white">
-                      <Check size={14} />
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div 
-                onClick={() => setPaymentMethod('mobile')}
-                className={`cursor-pointer rounded-lg border p-4 ${
-                  paymentMethod === 'mobile' 
-                    ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20' 
-                    : 'border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="mr-4 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-500 dark:bg-blue-900/20">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Mobile Banking</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Pay using your mobile banking app
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {paymentMethod === 'mobile' && (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-white">
-                      <Check size={14} />
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div 
-                onClick={() => setPaymentMethod('card')}
-                className={`cursor-pointer rounded-lg border p-4 ${
-                  paymentMethod === 'card' 
-                    ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20' 
-                    : 'border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="mr-4 flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-500 dark:bg-purple-900/20">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Card Payment</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Pay with your credit or debit card
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {paymentMethod === 'card' && (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-white">
-                      <Check size={14} />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Order Summary */}
-        <div>
-          <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-            <div className="p-6">
-              <h2 className="mb-4 text-lg font-semibold">Order Summary</h2>
-              
-              <div className="max-h-64 overflow-y-auto">
-                {items.map((item) => (
-                  <div key={item.productId} className="mb-4 flex items-center">
-                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 dark:border-gray-700">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="h-full w-full object-cover object-center"
-                      />
-                    </div>
-                    <div className="ml-4 flex flex-1 flex-col">
-                      <div className="flex justify-between">
-                        <h3 className="text-sm font-medium">
-                          {item.name}
-                        </h3>
-                        <p className="text-sm font-medium">
-                          {formatPrice(item.price * item.quantity)}
-                        </p>
+          {/* Order Summary */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="max-h-64 overflow-y-auto space-y-3">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="h-12 w-12 rounded-md bg-gray-200 dark:bg-gray-700">
+                            {item.image && (
+                              <img 
+                                src={item.image} 
+                                alt={item.name} 
+                                className="h-full w-full object-cover rounded-md"
+                              />
+                            )}
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium">{item.name}</p>
+                            <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm font-medium">{formatPrice(item.price * item.quantity)}</p>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Qty: {item.quantity}
-                      </p>
+                    ))}
+                  </div>
+                  
+                  <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <div className="flex justify-between mb-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Subtotal</p>
+                      <p className="text-sm font-medium">{formatPrice(totalPrice)}</p>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Shipping</p>
+                      <p className="text-sm font-medium">{formatPrice(0)}</p>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Tax</p>
+                      <p className="text-sm font-medium">{formatPrice(totalPrice * 0.05)}</p>
+                    </div>
+                    <div className="flex justify-between font-medium mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <p>Total</p>
+                      <p>{formatPrice(totalPrice + (totalPrice * 0.05))}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-              
-              <div className="space-y-4 border-t border-gray-200 pt-4 dark:border-gray-700">
-                <div className="flex justify-between">
-                  <p>Subtotal</p>
-                  <p>{formatPrice(totalPrice)}</p>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={!selectedAddress}
+                  >
+                    Place Order
+                  </Button>
                 </div>
-                <div className="flex justify-between">
-                  <p>Shipping</p>
-                  <p>{formatPrice(5)}</p>
-                </div>
-                <div className="flex justify-between">
-                  <p>Tax</p>
-                  <p>{formatPrice(totalPrice * 0.05)}</p>
-                </div>
-                
-                <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
-                  <div className="flex justify-between">
-                    <p className="text-lg font-semibold">Total</p>
-                    <p className="text-lg font-bold">
-                      {formatPrice(totalPrice + 5 + (totalPrice * 0.05))}
-                    </p>
-                  </div>
-                </div>
-                
-                <Button 
-                  fullWidth
-                  onClick={handlePlaceOrder}
-                  disabled={!selectedAddress}
-                >
-                  Place Order
-                </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 };
 
-export default CheckoutPage; 
+export default CheckoutPage;
