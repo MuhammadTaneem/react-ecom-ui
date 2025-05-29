@@ -8,18 +8,58 @@ export interface Category {
   subcategories: Category[];
 }
 
-export interface Product {
+export interface ProductVariant {
+  id: number;
+  product: number;
+  sku_code: string;
+  price: string;
+  discount_price: string | null | undefined;
+  stock_quantity: number;
+  variants_dict: Record<string, string>;
+  variants: number[];
+}
+
+export interface ProductImage {
+  id: number;
+  image: string;
+}
+
+export interface ProductTag {
   id: number;
   name: string;
   slug: string;
-  description: string;
-  price: number;
-  image: string;
-  category: string;
-  categoryId: number;
-  inStock: boolean;
-  featured: boolean;
-  rating: number;
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  slug?: string;
+  description?: Record<string, string>;
+  short_description?: string;
+  price?: number;
+  base_price: string;
+  discount_price?: string;
+  image?: string;
+  thumbnail: string;
+  category: number | string;
+  categoryId?: number;
+  inStock?: boolean;
+  stock_quantity: number;
+  featured?: boolean;
+  rating?: number;
+  has_variants: boolean;
+  key_features: string[];
+  additional_info: Record<string, string>;
+  brand: number | null;
+  tags: ProductTag[];
+  images: ProductImage[];
+  skus: ProductVariant[];
+  average_rating?: number;
+  rating_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  is_active?: boolean;
+  is_deleted?: boolean;
 }
 
 export interface CartItem {
@@ -29,6 +69,8 @@ export interface CartItem {
   price: number;
   quantity: number;
   image: string;
+  sku?: string;
+  selectedVariants?: Record<string, string>;
 }
 
 export interface User {

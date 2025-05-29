@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Menu, Search, User } from 'lucide-react';
+import { ShoppingCart, Menu, Search, User, AlignLeft } from 'lucide-react';
 import { useState } from 'react';
 import ThemeToggle from '../ui/ThemeToggle';
 import Button from '../ui/Button';
@@ -45,12 +45,22 @@ const Header = ({ onMenuClick }: HeaderProps) => {
       <div className="container-custom">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
+            {/* Mobile menu button */}
             <button
               onClick={onMenuClick}
               className="mr-4 rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 md:hidden"
-              aria-label="Open menu"
+              aria-label="Toggle mobile menu"
             >
               <Menu size={20} />
+            </button>
+            
+            {/* Desktop sidebar toggle */}
+            <button
+              onClick={onMenuClick}
+              className="mr-4 hidden rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 md:flex items-center"
+              aria-label="Toggle sidebar"
+            >
+              <AlignLeft size={20} />
             </button>
             
             <Link to="/" className="flex items-center">
