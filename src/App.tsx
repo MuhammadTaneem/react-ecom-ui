@@ -20,6 +20,11 @@ import AdminDashboardPage from './pages/admin/DashboardPage';
 import AdminProductsPage from './pages/admin/ProductsPage';
 import AdminOrdersPage from './pages/admin/OrdersPage';
 import AdminCustomersPage from './pages/admin/CustomersPage';
+import CategoriesPage from './pages/admin/categories';
+import VariantsPage from './pages/admin/variants';
+import TagsPage from './pages/admin/tags';
+import BrandsPage from './pages/admin/brands';
+import VouchersPage from './pages/admin/vouchers';
 
 import { setTheme } from './store/slices/themeSlice';
 import { useTheme } from './hooks/useTheme';
@@ -72,6 +77,11 @@ function App() {
         <Route path="products" element={<AdminProductsPage />} />
         <Route path="orders" element={<AdminOrdersPage />} />
         <Route path="customers" element={<AdminCustomersPage />} />
+        <Route path="categories" element={<CategoriesPage />} />
+        <Route path="variants" element={<VariantsPage />} />
+        <Route path="tags" element={<TagsPage />} />
+        <Route path="brands" element={<BrandsPage />} />
+        <Route path="vouchers" element={<VouchersPage />} />
         {/* Add more admin routes as needed */}
         <Route path="*" element={<NotFoundPage />} />
       </Route>

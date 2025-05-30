@@ -9,8 +9,13 @@ import {
   PackageOpen,
   BarChart3,
   MessageSquare,
-  FileText
+  FileText,
+  ListFilter,
+  Hash,
+  Building2,
+  Ticket
 } from 'lucide-react';
+import { useTheme } from '../../hooks/useTheme';
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -50,6 +55,26 @@ const AdminSidebar = ({ isOpen }: AdminSidebarProps) => {
       name: 'Categories',
       path: '/admin/categories',
       icon: <Tag size={20} />,
+    },
+    {
+      name: 'Variants',
+      path: '/admin/variants',
+      icon: <ListFilter size={20} />,
+    },
+    {
+      name: 'Tags',
+      path: '/admin/tags',
+      icon: <Hash size={20} />,
+    },
+    {
+      name: 'Brands',
+      path: '/admin/brands',
+      icon: <Building2 size={20} />,
+    },
+    {
+      name: 'Vouchers',
+      path: '/admin/vouchers',
+      icon: <Ticket size={20} />,
     },
     {
       name: 'Payments',

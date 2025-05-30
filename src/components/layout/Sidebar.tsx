@@ -57,8 +57,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       {/* Sidebar */}
       <aside
         ref={sidebarRef}
-        className={`fixed inset-y-0 left-0 z-50 w-full max-w-xs transform overflow-y-auto bg-white p-6 shadow-lg transition-all duration-300 ease-in-out dark:bg-gray-900 dark:border-r dark:border-gray-800 md:fixed md:top-16 md:bottom-0 md:h-[calc(100vh-4rem)] ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-50 transform overflow-y-auto bg-white p-6 shadow-lg transition-all duration-300 ease-in-out dark:bg-gray-900 dark:border-r dark:border-gray-800 md:fixed md:top-16 md:bottom-0 md:h-[calc(100vh-4rem)] ${
+          isOpen ? 'translate-x-0 w-auto min-w-[240px] max-w-[280px]' : '-translate-x-full md:w-0 md:min-w-0 md:max-w-0'
         }`}
       >
         <div className="flex items-center justify-between md:hidden">

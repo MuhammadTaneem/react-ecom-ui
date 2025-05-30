@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
 import { filterProductsByCategory } from '../store/slices/productSlice';
 import ProductCard from '../components/shop/ProductCard';
-import { Grid, List, SlidersHorizontal, Search, X } from 'lucide-react';
+import { Grid, List, SlidersHorizontal, Search, X, ChevronUp, ChevronDown } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import sampleProducts from '../data/sampleProducts';
+import { sampleBrands } from '../data/sampleBrands';
+import { Slider } from '@mui/material';
 
 const ProductsPage = () => {
   const { category } = useParams<{ category?: string }>();
@@ -23,23 +25,23 @@ const ProductsPage = () => {
   const searchParams = new URLSearchParams(location.search);
   const searchQuery = searchParams.get('search') || '';
   const sortParam = searchParams.get('sort') || 'featured';
-  const minPriceParam = searchParams.get('minPrice') || '0';
-  const maxPriceParam = searchParams.get('maxPrice') || '10000';
   const showDiscountParam = searchParams.get('discount') === 'true';
   
   // UI state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState<[number, number]>([
-    parseInt(minPriceParam), 
-    parseInt(maxPriceParam)
-  ]);
-  const [minPriceInput, setMinPriceInput] = useState(priceRange[0].toString());
-  const [maxPriceInput, setMaxPriceInput] = useState(priceRange[1].toString());
   const [sorting, setSorting] = useState<string>(sortParam);
   const [searchTerm, setSearchTerm] = useState(searchQuery);
-  const [showDiscount, setShowDiscount] = useState(showDiscountParam);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<number[]>([]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [minPriceInput, setMinPriceInput] = useState('0');
+  const [maxPriceInput, setMaxPriceInput] = useState('10000');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isTagsOpen, setIsTagsOpen] = useState(false);
+  const [isBrandsOpen, setIsBrandsOpen] = useState(false);
+  const brandsDropdownRef = useRef<HTMLDivElement>(null);
   
   // Filter products by category
   useEffect(() => {
@@ -56,59 +58,30 @@ const ProductsPage = () => {
     
     if (searchTerm) params.set('search', searchTerm);
     if (sorting !== 'featured') params.set('sort', sorting);
+    if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+    if (selectedBrands.length > 0) params.set('brands', selectedBrands.join(','));
     if (priceRange[0] > 0) params.set('minPrice', priceRange[0].toString());
     if (priceRange[1] < 10000) params.set('maxPrice', priceRange[1].toString());
-    if (showDiscount) params.set('discount', 'true');
-    if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
     
     navigate({
       pathname: location.pathname,
       search: params.toString()
     }, { replace: true });
-  }, [sorting, priceRange, showDiscount, selectedTags, navigate, location.pathname]);
+  }, [sorting, selectedTags, selectedBrands, priceRange, navigate, location.pathname]);
 
-  // Handle price input changes
-  const handlePriceInputChange = (type: 'min' | 'max', value: string) => {
-    if (value === '' || /^\d+$/.test(value)) {
-      if (type === 'min') {
-        setMinPriceInput(value);
-      } else {
-        setMaxPriceInput(value);
+  // Handle click outside for brand dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (brandsDropdownRef.current && !brandsDropdownRef.current.contains(event.target as Node)) {
+        setIsBrandsOpen(false);
       }
-    }
-  };
+    };
 
-  // Apply price input changes
-  const applyPriceInputs = () => {
-    const min = minPriceInput === '' ? 0 : parseInt(minPriceInput);
-    const max = maxPriceInput === '' ? 10000 : parseInt(maxPriceInput);
-    
-    if (min <= max) {
-      setPriceRange([min, max]);
-    } else {
-      // Reset inputs to current range if invalid
-      setMinPriceInput(priceRange[0].toString());
-      setMaxPriceInput(priceRange[1].toString());
-    }
-  };
-
-  // Handle min slider change
-  const handleMinSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newMin = parseInt(e.target.value);
-    if (newMin <= priceRange[1]) {
-      setPriceRange([newMin, priceRange[1]]);
-      setMinPriceInput(newMin.toString());
-    }
-  };
-
-  // Handle max slider change
-  const handleMaxSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newMax = parseInt(e.target.value);
-    if (newMax >= priceRange[0]) {
-      setPriceRange([priceRange[0], newMax]);
-      setMaxPriceInput(newMax.toString());
-    }
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Get category name for display
   const getCategoryName = (): string => {
@@ -135,15 +108,48 @@ const ProductsPage = () => {
     });
   };
 
+  // Handle price input changes
+  const handlePriceInputChange = (type: 'min' | 'max', value: string) => {
+    if (value === '' || /^\d+$/.test(value)) {
+      if (type === 'min') {
+        setMinPriceInput(value);
+      } else {
+        setMaxPriceInput(value);
+      }
+    }
+  };
+
+  // Apply price input changes
+  const applyPriceInputs = () => {
+    const min = minPriceInput === '' ? 0 : parseInt(minPriceInput);
+    const max = maxPriceInput === '' ? 10000 : parseInt(maxPriceInput);
+    
+    if (min <= max) {
+      setPriceRange([min, max]);
+    } else {
+      // Reset inputs to current range if invalid
+      setMinPriceInput(priceRange[0].toString());
+      setMaxPriceInput(priceRange[1].toString());
+    }
+  };
+
+  // Handle price range change
+  const handlePriceRangeChange = (_event: Event, newValue: number | number[]) => {
+    const [min, max] = newValue as number[];
+    setPriceRange([min, max]);
+    setMinPriceInput(min.toString());
+    setMaxPriceInput(max.toString());
+  };
+
   // Clear all filters
   const clearFilters = () => {
+    setSorting('featured');
+    setSearchTerm('');
+    setSelectedTags([]);
+    setSelectedBrands([]);
     setPriceRange([0, 10000]);
     setMinPriceInput('0');
     setMaxPriceInput('10000');
-    setSorting('featured');
-    setSearchTerm('');
-    setShowDiscount(false);
-    setSelectedTags([]);
     navigate(location.pathname);
   };
 
@@ -156,7 +162,16 @@ const ProductsPage = () => {
     );
   };
 
-  // Extract all unique tags from products
+  // Toggle brand selection
+  const toggleBrand = (brandId: number) => {
+    setSelectedBrands(prev => 
+      prev.includes(brandId) 
+        ? prev.filter(id => id !== brandId) 
+        : [...prev, brandId]
+    );
+  };
+
+  // Extract all unique tags and brands from products
   const allTags = products.reduce((tags, product) => {
     if (product.tags) {
       product.tags.forEach(tag => {
@@ -167,6 +182,9 @@ const ProductsPage = () => {
     }
     return tags;
   }, [] as {id: number, name: string, slug: string}[]);
+
+  // Extract all unique brands from products
+  const allBrands = sampleBrands;
 
   // Sort products
   const sortedProducts = [...products].sort((a, b) => {
@@ -184,25 +202,25 @@ const ProductsPage = () => {
     }
   });
 
-  // Filter products by price, search, discount, and tags
-  const filteredByPrice = sortedProducts.filter(product => {
-    const price = parseFloat(product.base_price);
-    const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
-    
+  // Filter products by search, tags, brands, and price
+  const filteredResults = sortedProducts.filter(product => {
     const matchesSearch = searchTerm 
       ? product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (product.short_description && product.short_description.toLowerCase().includes(searchTerm.toLowerCase()))
       : true;
     
-    const matchesDiscount = showDiscount 
-      ? product.discount_price && parseFloat(product.discount_price) < parseFloat(product.base_price)
-      : true;
-    
     const matchesTags = selectedTags.length > 0
       ? product.tags && product.tags.some(tag => selectedTags.includes(tag.id))
       : true;
+
+    const matchesBrands = selectedBrands.length > 0
+      ? product.brand && typeof product.brand === 'object' && 'id' in product.brand && selectedBrands.includes((product.brand as { id: number }).id)
+      : true;
+
+    const matchesPrice = parseFloat(product.base_price) >= priceRange[0] && 
+                        parseFloat(product.base_price) <= priceRange[1];
     
-    return matchesPrice && matchesSearch && matchesDiscount && matchesTags;
+    return matchesSearch && matchesTags && matchesBrands && matchesPrice;
   });
 
   return (
@@ -284,64 +302,44 @@ const ProductsPage = () => {
           
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="mb-2 block text-sm font-medium">
-                Price Range (${priceRange[0]} - ${priceRange[1]})
-              </label>
-              
-              <div className="mb-4">
-                <div className="mb-4">
-                  <label className="block text-xs text-gray-500 mb-1">Minimum Price: ${priceRange[0]}</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="10000"
-                    step="100"
-                    value={priceRange[0]}
-                    onChange={handleMinSliderChange}
-                    className="w-full accent-primary-500"
-                  />
-                </div>
+              <label className="mb-2 block text-sm font-medium">Brands</label>
+              <div className="relative" ref={brandsDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsBrandsOpen(!isBrandsOpen)}
+                  className="input flex w-full items-center justify-between"
+                >
+                  <span className="truncate">
+                    {selectedBrands.length > 0
+                      ? `${selectedBrands.length} selected`
+                      : 'Select brands'}
+                  </span>
+                  {isBrandsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
                 
-                <div className="mb-4">
-                  <label className="block text-xs text-gray-500 mb-1">Maximum Price: ${priceRange[1]}</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="10000"
-                    step="100"
-                    value={priceRange[1]}
-                    onChange={handleMaxSliderChange}
-                    className="w-full accent-primary-500"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <div className="flex-1">
-                  <label className="block text-xs text-gray-500 mb-1">Min ($)</label>
-                  <input
-                    type="text"
-                    value={minPriceInput}
-                    onChange={(e) => handlePriceInputChange('min', e.target.value)}
-                    onBlur={applyPriceInputs}
-                    className="input py-1 px-2 text-sm w-full"
-                    placeholder="Min"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs text-gray-500 mb-1">Max ($)</label>
-                  <input
-                    type="text"
-                    value={maxPriceInput}
-                    onChange={(e) => handlePriceInputChange('max', e.target.value)}
-                    onBlur={applyPriceInputs}
-                    className="input py-1 px-2 text-sm w-full"
-                    placeholder="Max"
-                  />
-                </div>
+                {isBrandsOpen && (
+                  <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                    {allBrands.map(brand => (
+                      <label
+                        key={brand.id}
+                        className="flex cursor-pointer items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedBrands.includes(brand.id)}
+                          onChange={() => toggleBrand(brand.id)}
+                          className="mr-2 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600"
+                        />
+                        <span className="text-sm">{brand.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
+
             
+
             <div>
               <label className="mb-2 block text-sm font-medium">Sort By</label>
               <select
@@ -356,25 +354,65 @@ const ProductsPage = () => {
                 <option value="rating">Top Rated</option>
               </select>
             </div>
-            
+
             <div>
-              <label className="mb-2 block text-sm font-medium">Offers</label>
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="discount"
-                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-800"
-                    checked={showDiscount}
-                    onChange={() => setShowDiscount(!showDiscount)}
+              <label className="mb-2 block text-sm font-medium">Price Range</label>
+              <div className="space-y-4">
+                <div className="px-2">
+                  <Slider
+                    value={priceRange}
+                    onChange={handlePriceRangeChange}
+                    valueLabelDisplay="auto"
+                    min={0}
+                    max={10000}
+                    step={100}
+                    sx={{
+                      color: '#2563eb', // primary-600
+                      '& .MuiSlider-thumb': {
+                        '&:hover, &.Mui-focusVisible': {
+                          boxShadow: '0 0 0 8px rgba(37, 99, 235, 0.16)',
+                        },
+                      },
+                      '& .MuiSlider-track': {
+                        border: 'none',
+                      },
+                      '& .MuiSlider-rail': {
+                        opacity: 0.5,
+                      },
+                    }}
                   />
-                  <label htmlFor="discount" className="ml-2 text-sm">
-                    On Sale
-                  </label>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">Min ($)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={priceRange[1]}
+                      value={minPriceInput}
+                      onChange={(e) => handlePriceInputChange('min', e.target.value)}
+                      onBlur={applyPriceInputs}
+                      className="input py-1 px-2 text-sm w-full"
+                      placeholder="Min"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">Max ($)</label>
+                    <input
+                      type="number"
+                      min={priceRange[0]}
+                      max="10000"
+                      value={maxPriceInput}
+                      onChange={(e) => handlePriceInputChange('max', e.target.value)}
+                      onBlur={applyPriceInputs}
+                      className="input py-1 px-2 text-sm w-full"
+                      placeholder="Max"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-            
+
             {allTags.length > 0 && (
               <div>
                 <label className="mb-2 block text-sm font-medium">Tags</label>
@@ -401,14 +439,14 @@ const ProductsPage = () => {
       
       {/* Results count */}
       <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-        Showing {filteredByPrice.length} {filteredByPrice.length === 1 ? 'product' : 'products'}
+        Showing {filteredResults.length} {filteredResults.length === 1 ? 'product' : 'products'}
       </div>
       
       {loading && products.length === 0 ? (
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent"></div>
         </div>
-      ) : filteredByPrice.length === 0 ? (
+      ) : filteredResults.length === 0 ? (
         <div className="my-16 text-center">
           <h2 className="mb-2 text-xl font-semibold">No products found</h2>
           <p className="text-gray-500 dark:text-gray-400">
@@ -417,13 +455,13 @@ const ProductsPage = () => {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredByPrice.map((product) => (
+          {filteredResults.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       ) : (
         <div className="space-y-6">
-          {filteredByPrice.map((product) => (
+          {filteredResults.map((product) => (
             <div
               key={product.id}
               className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 sm:flex-row"

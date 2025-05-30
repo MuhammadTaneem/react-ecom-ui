@@ -162,25 +162,25 @@ const ProductDetailPage = () => {
       <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-800">
         <div className="grid md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-3">
-            <div className="aspect-square overflow-hidden">
+            <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
               <img
                 src={selectedProduct.images && selectedProduct.images.length > 0 
                   ? selectedProduct.images[0].image 
                   : selectedProduct.thumbnail}
                 alt={selectedProduct.name}
-                className="h-full w-full object-cover object-center"
+                className="h-full w-full object-contain p-4"
               />
             </div>
             
             {/* Additional images */}
             {selectedProduct.images && selectedProduct.images.length > 1 && (
-              <div className="mt-4 grid grid-cols-4 gap-2 px-4">
+              <div className="mt-4 grid grid-cols-4 gap-2">
                 {selectedProduct.images.map((img, index) => (
-                  <div key={img.id} className="aspect-square cursor-pointer overflow-hidden rounded border-2 border-transparent hover:border-primary-500">
+                  <div key={img.id} className="aspect-square cursor-pointer overflow-hidden rounded-lg border-2 border-transparent bg-gray-100 dark:bg-gray-800 hover:border-primary-500">
                     <img
                       src={img.image}
                       alt={`${selectedProduct.name} - Image ${index + 1}`}
-                      className="h-full w-full object-cover object-center"
+                      className="h-full w-full object-contain p-2"
                     />
                   </div>
                 ))}

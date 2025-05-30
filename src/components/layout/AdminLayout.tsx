@@ -19,8 +19,12 @@ const AdminLayout = () => {
       <div className="flex h-[calc(100vh-64px)]">
         <AdminSidebar isOpen={sidebarOpen} />
         
-        <main className={`flex-1 overflow-auto p-6 transition-all ${sidebarOpen ? 'md:ml-64' : ''}`}>
-          <div className="container mx-auto">
+        <main 
+          className={`flex-1 overflow-auto transition-all duration-300 ${
+            sidebarOpen ? 'md:ml-64' : 'md:ml-16'
+          }`}
+        >
+          <div className="p-6">
             <Outlet />
           </div>
         </main>

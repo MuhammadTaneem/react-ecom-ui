@@ -29,16 +29,19 @@ const Layout = () => {
       <div className="flex flex-1">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         
-        <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-0'}`}>
-          <div className="container-custom py-8">
+        <main 
+          className={`flex-1 transition-all duration-300 ${
+            sidebarOpen ? 'md:ml-64' : 'md:ml-16'
+          }`}
+        >
+          <div className="p-6">
             <Suspense fallback={<div>Loading...</div>}>
               <Outlet />
             </Suspense>
           </div>
+          <Footer />
         </main>
       </div>
-      
-      <Footer />
       
       <ShoppingCart isOpen={isOpen} />
     </div>
