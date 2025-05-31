@@ -25,6 +25,7 @@ import VariantsPage from './pages/admin/variants';
 import TagsPage from './pages/admin/tags';
 import BrandsPage from './pages/admin/brands';
 import VouchersPage from './pages/admin/vouchers';
+import CampaignsPage from './pages/admin/campaigns';
 
 import { setTheme } from './store/slices/themeSlice';
 import { useTheme } from './hooks/useTheme';
@@ -82,6 +83,7 @@ function App() {
         <Route path="tags" element={<TagsPage />} />
         <Route path="brands" element={<BrandsPage />} />
         <Route path="vouchers" element={<VouchersPage />} />
+        <Route path="campaigns" element={<CampaignsPage />} />
         {/* Add more admin routes as needed */}
         <Route path="*" element={<NotFoundPage />} />
       </Route>

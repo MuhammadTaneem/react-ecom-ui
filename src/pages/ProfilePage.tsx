@@ -9,6 +9,7 @@ import { Package, CreditCard, Settings, User, MapPin, Plus } from 'lucide-react'
 import AddressForm from '../components/profile/AddressForm';
 import AddressCard from '../components/profile/AddressCard';
 import { Address } from '../types';
+import OrderDetailsModal from '../components/shop/OrderDetailsModal';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -22,6 +23,7 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   
   // Simulated addresses data - in a real app, this would come from Redux/API
   const [addresses, setAddresses] = useState<Address[]>([
@@ -44,6 +46,50 @@ const ProfilePage = () => {
       phone_number: '+8801987654321',
       is_default: false,
     },
+  ]);
+  
+  // Sample orders data
+  const [orders, setOrders] = useState([
+    {
+      id: 'ORD-1001',
+      date: '2024-03-15',
+      status: 'Delivered',
+      items: [
+        {
+          id: 1,
+          name: 'Product 1',
+          price: 49.99,
+          quantity: 2,
+          image: 'https://via.placeholder.com/150',
+          hasReview: false
+        },
+        {
+          id: 2,
+          name: 'Product 2',
+          price: 29.99,
+          quantity: 1,
+          image: 'https://via.placeholder.com/150',
+          hasReview: true
+        }
+      ],
+      total: 129.97
+    },
+    {
+      id: 'ORD-1002',
+      date: '2024-03-10',
+      status: 'Delivered',
+      items: [
+        {
+          id: 3,
+          name: 'Product 3',
+          price: 79.99,
+          quantity: 1,
+          image: 'https://via.placeholder.com/150',
+          hasReview: false
+        }
+      ],
+      total: 79.99
+    }
   ]);
   
   const {
@@ -90,6 +136,26 @@ const ProfilePage = () => {
 
   const handleDeleteAddress = (id: number) => {
     setAddresses(addresses.filter(addr => addr.id !== id));
+  };
+
+  const handleAddReview = (orderId: string, itemId: number, rating: number, comment: string) => {
+    setOrders(orders.map(order => {
+      if (order.id === orderId) {
+        return {
+          ...order,
+          items: order.items.map(item => {
+            if (item.id === itemId) {
+              return {
+                ...item,
+                hasReview: true
+              };
+            }
+            return item;
+          })
+        };
+      }
+      return order;
+    }));
   };
 
   const renderTabContent = () => {
@@ -170,27 +236,31 @@ const ProfilePage = () => {
           <div>
             <div className="mb-6 rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {[1, 2, 3].map((order) => (
-                  <div key={order} className="p-6">
+                {orders.map((order) => (
+                  <div key={order.id} className="p-6">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div>
-                        <p className="font-medium">Order #{order * 1000}</p>
+                        <p className="font-medium">Order #{order.id}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Placed on {new Date().toLocaleDateString()}
+                          Placed on {order.date}
                         </p>
                       </div>
                       <div>
                         <span className="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-300">
-                          Delivered
+                          {order.status}
                         </span>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">$129.99</p>
+                        <p className="font-medium">${order.total.toFixed(2)}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          3 items
+                          {order.items.length} items
                         </p>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedOrder(order)}
+                      >
                         View Order
                       </Button>
                     </div>
@@ -409,6 +479,16 @@ const ProfilePage = () => {
           </Card>
         </div>
       </div>
+      
+      {selectedOrder && (
+        <OrderDetailsModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+          onAddReview={(itemId, rating, comment) => 
+            handleAddReview(selectedOrder.id, itemId, rating, comment)
+          }
+        />
+      )}
     </div>
   );
 };

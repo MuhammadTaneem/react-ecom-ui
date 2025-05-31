@@ -53,6 +53,7 @@ export interface Product {
   skus: ProductVariant[];
   average_rating: number;
   rating_count: number;
+  featured: boolean;
 }
 
 export interface CartItem {

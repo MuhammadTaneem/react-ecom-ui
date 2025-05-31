@@ -3,11 +3,50 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
 import { setSelectedProduct } from '../store/slices/productSlice';
-import { ShoppingCart, Heart, Share2, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, ArrowLeft, Info, MessageSquare, FileText } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useCart } from '../hooks/useCart';
 import { ProductVariant } from '../types';
 import sampleProducts from '../data/sampleProducts';
+import ProductReviews from '../components/shop/ProductReviews';
+
+// Dummy review data
+const dummyReviews = [
+  {
+    id: 1,
+    user: 'John Doe',
+    rating: 5,
+    comment: 'Excellent product! The quality is outstanding and it exceeded my expectations.',
+    date: '2024-03-15'
+  },
+  {
+    id: 2,
+    user: 'Jane Smith',
+    rating: 4,
+    comment: 'Very good product. The only reason I\'m not giving 5 stars is because of the slightly delayed shipping.',
+    date: '2024-03-10'
+  },
+  {
+    id: 3,
+    user: 'Mike Johnson',
+    rating: 5,
+    comment: 'Perfect! Exactly what I was looking for.',
+    date: '2024-03-05'
+  },
+  {
+    id: 4,
+    user: 'Sarah Williams',
+    rating: 4,
+    date: '2024-03-01'
+  },
+  {
+    id: 5,
+    user: 'David Brown',
+    rating: 5,
+    comment: 'Amazing quality and great value for money. Highly recommended!',
+    date: '2024-02-28'
+  }
+];
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +57,7 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedSku, setSelectedSku] = useState<ProductVariant | null>(null);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<'details' | 'info' | 'reviews'>('details');
   
   useEffect(() => {
     if (id) {
@@ -234,6 +274,18 @@ const ProductDetailPage = () => {
               </p>
             )}
             
+            {/* Key Features */}
+            {selectedProduct.key_features && selectedProduct.key_features.length > 0 && (
+              <div className="mb-6">
+                <h3 className="mb-4 text-lg font-semibold">Key Features</h3>
+                <ul className="list-inside list-disc space-y-2">
+                  {selectedProduct.key_features.map((feature, index) => (
+                    <li key={index} className="text-gray-600 dark:text-gray-400">{feature}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
             {/* Variants */}
             {Object.keys(variantOptions).length > 0 && (
               <div className="mb-6 space-y-4">
@@ -314,63 +366,114 @@ const ProductDetailPage = () => {
                   to={`/products/${selectedProduct.category}`}
                   className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                 >
-                  {typeof selectedProduct.category === 'string' && selectedProduct.category.includes('-')
-                    ? selectedProduct.category
-                        .split('-')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ')
-                    : `Category ${selectedProduct.category}`
-                  }
+                  Category {selectedProduct.category}
                 </Link>
               </div>
             )}
           </div>
         </div>
         
-        {/* Additional information tabs */}
-        <div className="border-t border-gray-200 dark:border-gray-700">
+        {/* Tabs Section */}
+        <div className="mt-8 overflow-hidden rounded-lg bg-white dark:bg-gray-800">
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 dark:border-gray-700">
+            <nav className="flex space-x-8 px-6" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('details')}
+                className={`flex items-center border-b-2 py-4 text-sm font-medium ${
+                  activeTab === 'details'
+                    ? 'border-primary-500 text-primary-600 dark:border-primary-400 dark:text-primary-400'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300'
+                }`}
+              >
+                <FileText size={16} className="mr-2" />
+                Product Details
+              </button>
+              <button
+                onClick={() => setActiveTab('info')}
+                className={`flex items-center border-b-2 py-4 text-sm font-medium ${
+                  activeTab === 'info'
+                    ? 'border-primary-500 text-primary-600 dark:border-primary-400 dark:text-primary-400'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300'
+                }`}
+              >
+                <Info size={16} className="mr-2" />
+                Additional Info
+              </button>
+              <button
+                onClick={() => setActiveTab('reviews')}
+                className={`flex items-center border-b-2 py-4 text-sm font-medium ${
+                  activeTab === 'reviews'
+                    ? 'border-primary-500 text-primary-600 dark:border-primary-400 dark:text-primary-400'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300'
+                }`}
+              >
+                <MessageSquare size={16} className="mr-2" />
+                Reviews
+              </button>
+            </nav>
+          </div>
+
+          {/* Tab Content */}
           <div className="p-6">
-            <h2 className="mb-4 text-xl font-semibold">Product Details</h2>
-            
-            {selectedProduct.description && Object.keys(selectedProduct.description).length > 0 ? (
-              <div className="prose max-w-none dark:prose-invert">
-                {Object.entries(selectedProduct.description).map(([key, value]) => (
-                  <div key={key} className="mb-4">
-                    <h3 className="text-lg font-medium">{key}</h3>
-                    <p>{value}</p>
+            {/* Product Details Tab */}
+            {activeTab === 'details' && (
+              <div>
+                {selectedProduct.description && Object.keys(selectedProduct.description).length > 0 ? (
+                  <div className="prose max-w-none dark:prose-invert">
+                    {Object.entries(selectedProduct.description).map(([key, value]) => (
+                      <div key={key} className="mb-4">
+                        <h3 className="text-lg font-medium">{key}</h3>
+                        <p>{value}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">No detailed description available.</p>
-            )}
-            
-            {selectedProduct.additional_info && Object.keys(selectedProduct.additional_info).length > 0 && (
-              <div className="mt-8">
-                <h3 className="mb-4 text-lg font-semibold">Additional Information</h3>
-                <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {Object.entries(selectedProduct.additional_info).map(([key, value]) => (
-                        <tr key={key}>
-                          <td className="whitespace-nowrap px-4 py-2 font-medium">{key}</td>
-                          <td className="px-4 py-2">{value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400">No detailed description available.</p>
+                )}
+
+                {/* Reviews Section in Product Details Tab */}
+                <div className="mt-12 border-t border-gray-200 pt-8 dark:border-gray-700">
+                  <h2 className="mb-6 text-2xl font-bold">Customer Reviews</h2>
+                  <ProductReviews
+                    reviews={dummyReviews}
+                    averageRating={selectedProduct.average_rating}
+                    totalReviews={selectedProduct.rating_count}
+                  />
                 </div>
               </div>
             )}
-            
-            {selectedProduct.key_features && selectedProduct.key_features.length > 0 && (
-              <div className="mt-8">
-                <h3 className="mb-4 text-lg font-semibold">Key Features</h3>
-                <ul className="list-inside list-disc space-y-2">
-                  {selectedProduct.key_features.map((feature, index) => (
-                    <li key={index}>{feature}</li>
-                  ))}
-                </ul>
+
+            {/* Additional Info Tab */}
+            {activeTab === 'info' && (
+              <div>
+                {selectedProduct.additional_info && Object.keys(selectedProduct.additional_info).length > 0 ? (
+                  <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {Object.entries(selectedProduct.additional_info).map(([key, value]) => (
+                          <tr key={key}>
+                            <td className="whitespace-nowrap px-4 py-2 font-medium">{key}</td>
+                            <td className="px-4 py-2">{value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400">No additional information available.</p>
+                )}
+              </div>
+            )}
+
+            {/* Reviews Tab */}
+            {activeTab === 'reviews' && (
+              <div>
+                <ProductReviews
+                  reviews={dummyReviews}
+                  averageRating={selectedProduct.average_rating}
+                  totalReviews={selectedProduct.rating_count}
+                />
               </div>
             )}
           </div>

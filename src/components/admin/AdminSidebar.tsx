@@ -13,7 +13,8 @@ import {
   ListFilter,
   Hash,
   Building2,
-  Ticket
+  Ticket,
+  Megaphone
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -50,6 +51,11 @@ const AdminSidebar = ({ isOpen }: AdminSidebarProps) => {
       name: 'Customers',
       path: '/admin/customers',
       icon: <Users size={20} />,
+    },
+    {
+      name: 'Campaigns',
+      path: '/admin/campaigns',
+      icon: <Megaphone size={20} />,
     },
     {
       name: 'Categories',
